@@ -1,0 +1,63 @@
+# Build handcalcs-migrate and upload it to PyPI when a GitHub release is published.
+#
+# Uploads use PyPI trusted publishing (no API token): the project's PyPI settings
+# list this repository, this workflow file (python-publish.yml) and the 'pypi'
+# environment as a trusted publisher.
+
+name: Upload Python Package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+    - uses: astral-sh/setup-uv@v10.3.0
+      with:
+        version: "0.13.1"
+        python-version: "3.13"
+    - name: Build the wheel and sdist
+      run: uv build
+    - name: Check the version matches the release tag
+      run: |
+        version=$(ls dist/*.whl | sed -E 's|dist/handcalcs_migrate-([^-]+)-.*|\1|')
+        echo "wheel version: $version, release tag: $GITHUB_REF_NAME"
+        [ "$version" = "${GITHUB_REF_NAME#v}" ] || {
+          echo "::error::pyproject version $version does not match the tag $GITHUB_REF_NAME"
+          exit 1
+        }
+    - name: Check __version__ matches pyproject
+      run: |
+        init=$(sed -nE 's/^__version__ = "(.*)"/\1/p' src/handcalcs_migrate/__init__.py)
+        [ "$init" = "${GITHUB_REF_NAME#v}" ] || {
+          echo "::error::__version__ $init does not match the tag $GITHUB_REF_NAME"
+          exit 1
+        }
+    - uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/handcalcs-migrate/
+    permissions:
+      id-token: write  # trusted publishing
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: dist
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
