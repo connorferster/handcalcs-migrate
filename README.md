@@ -1,5 +1,9 @@
 # handcalcs-migrate
 
+> **This tool has moved to [StructuralPython/hc-migrate](https://github.com/StructuralPython/hc-migrate)**,
+> which also turns notebooks into handcalcs v2 scripts. Use `hc-migrate ... --to ipynb`
+> for what `handcalcs-migrate` did. This repository is no longer updated.
+
 Convert Jupyter notebooks and Python files written for
 [handcalcs](https://github.com/connorferster/handcalcs) v1 to handcalcs v2.
 
